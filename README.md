@@ -44,7 +44,7 @@ Invoke-CopilotReadinessAssessment -AllSites -ClientId $cid -Show
 | **`Get-EveryoneAccess`** | ✅ | Every place the `Everyone` / `Everyone Except External Users` (EEEU) claim grants access — the #1 oversharing culprit. |
 | **`Get-OversharedContent`** | ✅ | Anonymous ("Anyone") and Organization-wide sharing links, found via the scalable SharingLinks-groups method (no per-file walking). |
 | **`Invoke-CopilotReadinessAssessment`** | ✅ | Runs both scans → a scored, branded HTML **Copilot Readiness Scorecard**. |
-| `Get-GuestExposure` | planned | Guests + exactly what each can reach; stale guests. |
+| **`Get-GuestExposure`** | ✅ | Guest / external users and the stale ones — never-accepted invites, and (with `AuditLog.Read.All`) never or long-since signed in. |
 | `Get-SensitivityLabelGap` | planned | Sensitive content that's unlabeled **and** overshared — the true Copilot risk. |
 | `Get-CopilotAgentInventory` | planned | Declarative / Copilot Studio agents, owners, knowledge sources. |
 
@@ -88,7 +88,22 @@ Runs both scans, scores the exposure, and writes a self-contained HTML scorecard
 **Score** = `100 − min(100, anonymousLinks×8 + everyoneGrants×4 + orgLinks×2)` — higher is
 safer; anonymous links weigh heaviest. Returns a summary object plus the full findings.
 
-## Scope & limitations (v0.2)
+## `Get-GuestExposure`
+
+Inventories guest (external) users and flags the stale ones — the lingering external access
+nobody remembers, and a top Copilot risk. Reads Microsoft Graph through the current connection
+(run `Connect-CopilotGovernance` first).
+
+| Parameter | Description |
+|---|---|
+| `-StaleDays <n>` | Flag a guest whose last sign-in is older than this many days (default 90). |
+| `-StaleOnly` | Return only the guests flagged stale. |
+
+Graph permissions: **`User.Read.All`** (list guests — required) and **`AuditLog.Read.All`**
+(last sign-in date — optional, needs Entra ID P1). Without `AuditLog.Read.All` it degrades to
+invitation-state staleness (an unaccepted invite counts as stale) with a warning.
+
+## Scope & limitations (v0.3)
 
 Honest about what it does and doesn't cover yet:
 
