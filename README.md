@@ -45,8 +45,6 @@ Invoke-CopilotReadinessAssessment -AllSites -ClientId $cid -Show
 | **`Get-OversharedContent`** | ✅ | Anonymous ("Anyone") and Organization-wide sharing links, found via the scalable SharingLinks-groups method (no per-file walking). |
 | **`Invoke-CopilotReadinessAssessment`** | ✅ | Runs both scans → a scored, branded HTML **Copilot Readiness Scorecard**. |
 | **`Get-GuestExposure`** | ✅ | Guest / external users and the stale ones — never-accepted invites, and (with `AuditLog.Read.All`) never or long-since signed in. |
-| `Get-SensitivityLabelGap` | planned | Sensitive content that's unlabeled **and** overshared — the true Copilot risk. |
-| `Get-CopilotAgentInventory` | planned | Declarative / Copilot Studio agents, owners, knowledge sources. |
 
 ## `Get-EveryoneAccess`
 
