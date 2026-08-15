@@ -1,0 +1,12 @@
+# output / local
+*.csv
+*.html
+*.log
+/output/
+/.vs/
+*.user
+
+# PnP / secrets
+*.pfx
+*.cer
+appsettings*.json
