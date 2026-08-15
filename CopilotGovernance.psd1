@@ -1,6 +1,6 @@
 @{
     RootModule        = 'CopilotGovernance.psm1'
-    ModuleVersion     = '0.3.0'
+    ModuleVersion     = '0.3.1'
     GUID              = 'b7e1c2a4-9f3d-4c8e-8a2b-1d6f0e5c7a90'
     Author            = 'G Vijai Kumar'
     CompanyName       = 'Five Number'
@@ -29,7 +29,7 @@
             Tags         = @('Copilot','Governance','Oversharing','SharePoint','Microsoft365','M365','Security','PnP','DataAccessGovernance','Purview')
             LicenseUri   = 'https://github.com/gvijaikumar9/CopilotGovernance/blob/main/LICENSE'
             ProjectUri   = 'https://github.com/gvijaikumar9/CopilotGovernance'
-            ReleaseNotes = 'v0.3.0 - Get-GuestExposure (inventories guest/external users and flags stale ones via Microsoft Graph; needs User.Read.All, and AuditLog.Read.All for sign-in based staleness). v0.2.0 - Get-OversharedContent + Invoke-CopilotReadinessAssessment (HTML Copilot Readiness Scorecard). v0.1.0 - Get-EveryoneAccess.'
+            ReleaseNotes = 'v0.3.1 - quality: extract Get-GuestExposure logic to a unit-tested private helper (ConvertTo-CGGuestRecord), add 6 Pester tests for it, fix the PSUseSingularNouns analyzer warning. v0.3.0 - Get-GuestExposure (inventories guest/external users and flags stale ones via Microsoft Graph; needs User.Read.All, and AuditLog.Read.All for sign-in based staleness). v0.2.0 - Get-OversharedContent + Invoke-CopilotReadinessAssessment (HTML Copilot Readiness Scorecard). v0.1.0 - Get-EveryoneAccess.'
         }
     }
 }

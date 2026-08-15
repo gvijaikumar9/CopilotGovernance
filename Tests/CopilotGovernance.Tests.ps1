@@ -118,3 +118,48 @@ Describe 'New-CGScorecardHtml (report rendering)' {
         }
     }
 }
+
+Describe 'ConvertTo-CGGuestRecord (guest classification)' {
+    It 'extracts the domain from the mail address' {
+        InModuleScope CopilotGovernance {
+            $g = [pscustomobject]@{ displayName='A'; mail='jo@contoso.com'; userPrincipalName='x'; externalUserState='Accepted'; createdDateTime=$null }
+            (ConvertTo-CGGuestRecord -Guest $g -UseSignIn $false).ExternalDomain | Should -Be 'contoso.com'
+        }
+    }
+    It 'parses the domain from an #EXT# UPN when mail is absent' {
+        InModuleScope CopilotGovernance {
+            $g = [pscustomobject]@{ displayName='A'; mail=$null; userPrincipalName='jo_contoso.com#EXT#@tenant.onmicrosoft.com'; externalUserState='Accepted'; createdDateTime=$null }
+            (ConvertTo-CGGuestRecord -Guest $g -UseSignIn $false).ExternalDomain | Should -Be 'contoso.com'
+        }
+    }
+    It 'flags an unaccepted invite as stale when no sign-in data' {
+        InModuleScope CopilotGovernance {
+            $g = [pscustomobject]@{ displayName='A'; mail='jo@x.com'; userPrincipalName='x'; externalUserState='PendingAcceptance'; createdDateTime=$null }
+            (ConvertTo-CGGuestRecord -Guest $g -UseSignIn $false).Stale | Should -BeTrue
+        }
+    }
+    It 'does not flag an accepted invite as stale when no sign-in data' {
+        InModuleScope CopilotGovernance {
+            $g = [pscustomobject]@{ displayName='A'; mail='jo@x.com'; userPrincipalName='x'; externalUserState='Accepted'; createdDateTime=$null }
+            (ConvertTo-CGGuestRecord -Guest $g -UseSignIn $false).Stale | Should -BeFalse
+        }
+    }
+    It 'flags a never-signed-in guest as stale when sign-in data is available' {
+        InModuleScope CopilotGovernance {
+            $g = [pscustomobject]@{ displayName='A'; mail='jo@x.com'; userPrincipalName='x'; externalUserState='Accepted'; createdDateTime=$null }
+            $r = ConvertTo-CGGuestRecord -Guest $g -SignInActivity $null -UseSignIn $true
+            $r.NeverSignedIn | Should -BeTrue
+            $r.Stale         | Should -BeTrue
+        }
+    }
+    It 'flags long-idle stale and recent not-stale by sign-in date' {
+        InModuleScope CopilotGovernance {
+            $now = Get-Date
+            $g   = [pscustomobject]@{ displayName='A'; mail='jo@x.com'; userPrincipalName='x'; externalUserState='Accepted'; createdDateTime=$null }
+            $old = [pscustomobject]@{ lastSignInDateTime = $now.AddDays(-200).ToString('o') }
+            $new = [pscustomobject]@{ lastSignInDateTime = $now.AddDays(-5).ToString('o') }
+            (ConvertTo-CGGuestRecord -Guest $g -SignInActivity $old -UseSignIn $true -StaleDays 90 -Now $now).Stale | Should -BeTrue
+            (ConvertTo-CGGuestRecord -Guest $g -SignInActivity $new -UseSignIn $true -StaleDays 90 -Now $now).Stale | Should -BeFalse
+        }
+    }
+}

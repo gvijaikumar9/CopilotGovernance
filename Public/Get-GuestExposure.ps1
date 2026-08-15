@@ -48,7 +48,7 @@ function Get-GuestExposure {
 
     # Page through @odata.nextLink. Invoke-PnPGraphMethod raises a NON-terminating
     # error on a permission failure, so force -ErrorAction Stop to make try/catch work.
-    function Get-CGGuests([string]$startUrl) {
+    function Get-CGGuest([string]$startUrl) {
         $list = [System.Collections.Generic.List[object]]::new()
         $url = $startUrl
         while ($url) {
@@ -62,14 +62,14 @@ function Get-GuestExposure {
     # 1. Guest list - reliable, needs only User.Read.All. Never fold signInActivity
     #    into this query; Graph is finicky about the combination and can blank the
     #    whole result set instead of erroring.
-    $guests = Get-CGGuests "v1.0/users?`$filter=userType eq 'Guest'&`$select=$select&`$top=999"
+    $guests = Get-CGGuest "v1.0/users?`$filter=userType eq 'Guest'&`$select=$select&`$top=999"
 
     # 2. Best-effort sign-in enrichment in a SEPARATE query (needs Entra ID P1 +
     #    AuditLog.Read.All). If refused, degrade to invitation-state staleness.
     $signIn    = @{}
     $useSignIn = $false
     try {
-        $si = Get-CGGuests "v1.0/users?`$filter=userType eq 'Guest'&`$select=id,signInActivity&`$top=999"
+        $si = Get-CGGuest "v1.0/users?`$filter=userType eq 'Guest'&`$select=id,signInActivity&`$top=999"
         foreach ($u in $si) { $signIn[$u.id] = $u.signInActivity }
         $useSignIn = $true
     }
@@ -77,46 +77,9 @@ function Get-GuestExposure {
         Write-Warning "Sign-in activity unavailable (needs Entra ID P1 + AuditLog.Read.All). Using invitation state for staleness instead."
     }
 
+    # Build each record through the pure, unit-tested helper.
     $results = foreach ($g in $guests) {
-        # External domain: prefer the mail domain, else parse the #EXT# UPN.
-        $domain =
-            if ($g.mail) { ($g.mail -split '@')[-1] }
-            elseif ($g.userPrincipalName -match '#EXT#') { (($g.userPrincipalName -split '_')[-1] -split '#')[0] }
-            else { '' }
-
-        $invited = if ($g.createdDateTime) { [datetime]$g.createdDateTime } else { $null }
-        $invitedDaysAgo = if ($invited) { [int]($now - $invited).TotalDays } else { $null }
-
-        $lastSignIn = $null; $daysSinceSignIn = $null; $neverSignedIn = $null
-        if ($useSignIn) {
-            $sia = $signIn[$g.id]
-            if ($sia -and $sia.lastSignInDateTime) {
-                $lastSignIn      = [datetime]$sia.lastSignInDateTime
-                $daysSinceSignIn = [int]($now - $lastSignIn).TotalDays
-                $neverSignedIn   = $false
-            }
-            else { $neverSignedIn = $true }
-        }
-
-        $stale =
-            if ($useSignIn) {
-                ($neverSignedIn -eq $true) -or ($null -ne $daysSinceSignIn -and $daysSinceSignIn -gt $StaleDays)
-            }
-            else {
-                $g.externalUserState -eq 'PendingAcceptance'   # never accepted the invite
-            }
-
-        [pscustomobject]@{
-            DisplayName     = $g.displayName
-            Email           = if ($g.mail) { $g.mail } else { $g.userPrincipalName }
-            ExternalDomain  = $domain
-            InviteState     = $g.externalUserState
-            InvitedDaysAgo  = $invitedDaysAgo
-            LastSignIn      = $lastSignIn
-            DaysSinceSignIn = $daysSinceSignIn
-            NeverSignedIn   = $neverSignedIn
-            Stale           = [bool]$stale
-        }
+        ConvertTo-CGGuestRecord -Guest $g -SignInActivity $signIn[$g.id] -UseSignIn $useSignIn -StaleDays $StaleDays -Now $now
     }
 
     $all = @($results)
